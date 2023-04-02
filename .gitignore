@@ -1,0 +1,4 @@
+config/ibus/
+local/share/**/*
+local/state/nvim/**/*
+nvim.appimage
