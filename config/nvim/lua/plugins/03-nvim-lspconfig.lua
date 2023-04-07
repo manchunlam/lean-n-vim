@@ -1,16 +1,71 @@
 require("mason").setup()
+
+-- Check if executable exists at $PATH
+local function commandExists(executable)
+	local cmd = 'command -v ' .. executable
+	local handle = io.popen(cmd)
+	local result
+
+	if handle == nil then
+		return false
+	else
+		result = handle:read("*a")
+		handle:close()
+	end
+
+	return (result ~= nil and result ~= '')
+end
+
+-- Language Servers
+local languageServers = {'lua_ls'}
+
+-- Add Solargraph if possible
+if commandExists('gem') then
+	table.insert(languageServers, 'solargraph')
+end
+
+-- Install Language Servers
 require("mason-lspconfig").setup({
-	ensure_installed = {'lua_ls', 'solargraph'}
+	ensure_installed = languageServers
 })
 
 -- Setup language servers.
 local lspconfig = require('lspconfig')
 
-local projectDir = os.getenv('PWD')
-local solargraphExec = projectDir .. '/.bin/solargraph'
-lspconfig.solargraph.setup({
-	cmd = { solargraphExec, 'stdio' }
-})
+-- Check if file path exists
+local function fileExists(filePath)
+	local f = io.open(filePath, 'r')
+
+	if f ~= nil then
+		io.close(f)
+		return true
+	end
+
+	return false
+end
+
+-- Check if array contains an element
+local function includes(array, el)
+	for i, v in ipairs(array) do
+		if v == el then
+			return true
+		end
+	end
+
+	return false
+end
+
+-- Configure per project Solargraph, or use the global one
+if includes(languageServers, 'solargraph') then
+	local projectExec = os.getenv('PWD') .. '/.bin/solargraph'
+	if fileExists(projectExec) then
+		lspconfig.solargraph.setup({
+			cmd = { solargraphExec, 'stdio' }
+		})
+	else
+		lspconfig.solargraph.setup()
+	end
+end
 
 -- Global mappings.
 -- See `:help vim.diagnostic.*` for documentation on any of the below functions
